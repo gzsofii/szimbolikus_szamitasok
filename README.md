@@ -1,0 +1,1 @@
+# szimbolikus_szamitasok
