@@ -285,7 +285,7 @@ def simplify(expr, rules, transformations, simplicity_measure):
 
 #Feladatok
 # Irodalom feldolgozása - hogyan működnek ezek az algoritmusok, használható ötleteket kigyűjteni, stb.
-#   63. oldaltól: http://people.inf.elte.hu/krtamas/03%20__[Joel_S._Cohen]_Computer_algebra_and_symbolic_comp.pdf
+#   63. oldaltól: krtamas/03%20__[Joel_S._Cohen]_Computer_algebra_and_symbolic_comp.pdf
 #   Maple: https://www.maplesoft.com/support/help/maple/view.aspx?path=simplify%2fdetails
 #   https://stackoverflow.com/questions/7540227/strategies-for-simplifying-math-expressions/7542438#7542438
 #
