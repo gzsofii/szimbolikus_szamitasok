@@ -77,6 +77,25 @@ class External:
     def __eq__(self, other):
         return type(other) is External and self.func == other.func and self.func_args == other.func_args
 
+class Fraction:
+    def __init__(self, num, denom):
+        if not num.is_integer() or not denom.is_integer():
+            self = None
+            return
+
+        if denom == 0:
+            self = None
+            return
+
+        self.num = num 
+        self.denom = denom
+
+    def __repr__(self):
+        return "Fraction({}, {})".format(self.num, self.denom)
+
+    def __eq__(self, other):
+        return type(other) is Fraction and self.num == other.num and self.denom == other.denom
+
 #Megpróbál 2-t leválasztani egy konstansból.
 #Ha nincs illeszkedés, None-t kell visszaadni, egyébként egy dict-et a változónevekkel és hozzájuk tartozó értékekkel
 #Használat: External(separate_2, 'k')
@@ -332,25 +351,560 @@ def simplify(expr, rules, transformations, simplicity_measure):
 #       Mivel itt most nincs az algoritmus mögött egy komputeralgebra-rendszer ami ezt megtenné, ezért a legalapvetőbb
 #       kifejezéseket célszerű mégis kiértékelni, lásd fentebb az eval_tree transzformációt.
 
+def simplify_expr(expr):
+    if isinstance(expr, numbers.Integral) or type(expr) is Var:
+        return expr
+
+    if type(expr) is Fraction:
+        return simplify_fraction(expr)
+
+    if type(expr) is Function:
+        expr.args = map(simplify_expr, expr.args)
+        
+        if expr.name == '^':
+            return simplify_power(expr)
+        if expr.name == '+':
+            return simplify_sum(expr)
+        if expr.name == '-':
+            return simplify_diff(expr)
+        if expr.name == '*':
+            return simplify_prod(expr)
+        if expr.name == '/':
+            return simplify_quot(expr)
+
+def simplify_power(expr):
+    v = expr.args[0]
+    w = expr.args[1]
+
+    if v == None or w == None:
+        return None
+
+    if isinstance(v, numbers.Number):
+        if v == 0:
+            if isinstance(w, numbers.Number) and w > 0:
+                return 0
+            elif type(w) is Fraction and w.num * w.denom > 0:
+                return 0
+        elif v == 1:
+            return 1
+
+    if isinstance(w, numbers.Integral):
+        return simplify_int_power(v, w)
+
+    return expr
+
+def simplify_int_power(v, n):
+    if isinstance(expr, numbers.Integral) or type(expr) is Fraction:
+        return simplify_rne(Function('^', v, n))
+
+    if n == 0:
+        return 1
+
+    if n == 1:
+        return v
+
+    if type(v) is Function:
+        if v.name == '^':
+            r = v.args[0]
+            s = v.args[1]
+            p = simplify_product(s, n)
+
+            if isinstance(p, numbers.Integral):
+                return simplify_int_power(r, p)
+
+            return Function('^', r, p)
+
+        if v.name == '*':
+            v.args = map(simplify_int_power, v.args)
+            return simplify_product(v)
+
+    return Function('^', [v,n]);
+
+def simplyfy_product(expr):
+    # SPRD-1
+    if None in expr.args:
+        return None
+
+    # SPRD-2
+    if 0 in expr.args:
+        return 0
+
+    # SPRD-3
+    if len(expr.args) == 1:
+        return expr.args[0]
+
+    # SPRD-4
+    v = simplify_product_rec(expr.args, expr.commutative, expr.associative)
+    
+    if len(v) == 1: # SPRD-4-1
+        return v[0]
+    elif len(v) > 1: # SPRD-4-2
+        return Function('*', v, commutative = expr.commutative, associative = expr.associative)
+    elif len(v) == 0: # SPRD-4-3
+        return 1
+
+def simplify_product_rec(L, c, a):
+    if len(L) == 2:
+        # SPRDREC-1
+        if not (type(L[0]) is Function and L[0].name == '*') and not (type(L[1]) is Function and L[1].name == '*'):
+            # SPRDREC-1-1
+            if isinstance(L[0], number.Numbers) and isinstance(L[1], number.Numbers):
+                P = simlify_rne(Function('*', L, commutative = c, associative = a))
+                if P == 1:
+                    return []
+                else:
+                    return [P]
+            
+            # SPRDREC-1-2-a
+            if isinstance(L[0], number.Numbers) and L[0] == 1:
+                return [L[1]]
+
+            # SPRDREC-1-2-b
+            if isinstance(L[1], number.Numbers) and L[1] == 1:
+                return [L[0]]
+
+            # SPRDREC-1-3
+            if base(L[0]) == base(L[2]):
+                S = simplify_sum(Function('+', exponent(L[0]), exponent(L[1])))
+                P = simplyfy_power(Function('^', base(L[0]), S))
+                if isinstance(P, numbers.Number) and P == 1:
+                    return []
+                else:
+                    return [P]
+
+            # SPRDREC-1-4
+            if c and before(L[1], L[0]):
+                return [L[1], L[0]]
+
+            # SPRDREC-1-5
+            return L
+
+        # SPRDREC-2-1
+        elif type(L[0]) is Function and L[0].name == '*' and type(L[1]) is Function and L[1].name == '*':
+            return merge_products(L[0].args, L[1].args)
+
+        # SPRDREC-2-2
+        elif type(L[0]) is Function and L[0].name == '*':
+            return merge_products(L[0].args, [L[1]])
+
+        # SPRDREC-2-3
+        elif type(L[1]) is Function and L[1].name == '*':
+            return merge_products([L[0]], L[1].args)
+
+    # SPRDREC-3
+    elif len(L) > 2:
+        w = simplify_product_rec(L[1:])
+
+        # SPRDREC-3-1
+        if type(L[0]) is Function and L[0].name == '*':
+            return merge_products(L[0].args, w)
+
+        # SPRDREC-3-2
+        else:
+            return merge_products([L[0]], w)
+
+def merge_product(p, q):
+    # MPRD-1
+    if q == []:
+        return p
+
+    # MPRD-2
+    if p == []:
+        return q
+
+    # MPRD-3
+    h = simplify_product_rec([p[0]], [p[1]])
+    
+    # MPRD-3-1
+    if h == []:
+        return merge_products(p[1:], q[1:])
+    # MPRD-3-2
+    elif len(h) == 1:
+        return merge_products(p[1:], q[1:]).insert(0, h[0])
+    
+    elif len(h) == 2:
+        # MPRD-3-3
+        if h[0] == p[0]:
+            return merge_products(p[1:], q).insert(0, h[0])
+        
+        # MPRD-3-3
+        elif h[0] == q[0]:
+            return merge_products(p, q[1:]).insert(0, h[0])
+
+def simplyfy_sum(expr):
+    # SSRD-1
+    if None in expr.args:
+        return None
+
+    # SSRD-3
+    if len(expr.args) == 1:
+        return expr.args[0]
+
+    # SSRD-4
+    v = simplify_sum_rec(expr.args, expr.commutative, expr.associative)
+    
+    if len(v) == 1: # SSRD-4-1
+        return v[0]
+    elif len(v) > 1: # SSRD-4-2
+        return Function('+', v, commutative = expr.commutative, associative = expr.associative)
+    elif len(v) == 0: # SSRD-4-3
+        return 1
+
+def simplify_sum_rec(L, c, a):
+    if len(L) == 2:
+        # SSRDREC-1
+        if not (type(L[0]) is Function and L[0].name == '+') and not (type(L[1]) is Function and L[1].name == '+'):
+            # SSRDREC-1-1
+            if isinstance(L[0], number.Numbers) and isinstance(L[1], number.Numbers):
+                P = simlify_rne(Function('+', L, commutative = c, associative = a))
+                if P == 0:
+                    return []
+                else:
+                    return [P]
+            
+            # SSRDREC-1-2-a
+            if isinstance(L[0], number.Numbers) and L[0] == 0:
+                return [L[1]]
+
+            # SSRDREC-1-2-b
+            if isinstance(L[1], number.Numbers) and L[1] == 0:
+                return [L[0]]
+
+            # SSRDREC-1-3
+            if term(L[0]) == term(L[2]):
+                S = simplify_sum(Function('+', const(L[0]), const(L[1])))
+                P = simplyfy_product(Function('*', term(L[0]), S))
+                if isinstance(P, numbers.Number) and P == 0:
+                    return []
+                else:
+                    return [P]
+
+            # SSRDREC-1-4
+            if c and before(L[1], L[0]):
+                return [L[1], L[0]]
+
+            # SSRDREC-1-5
+            return L
+
+        # SSRDREC-2-1
+        elif type(L[0]) is Function and L[0].name == '+' and type(L[1]) is Function and L[1].name == '+':
+            return merge_sums(L[0].args, L[1].args)
+
+        # SSRDREC-2-2
+        elif type(L[0]) is Function and L[0].name == '+':
+            return merge_sums(L[0].args, [L[1]])
+
+        # SSRDREC-2-3
+        elif type(L[1]) is Function and L[1].name == '+':
+            return merge_sums([L[0]], L[1].args)
+
+    # SSRDREC-3
+    elif len(L) > 2:
+        w = simplify_sum_rec(L[1:])
+
+        # SSRDREC-3-1
+        if type(L[0]) is Function and L[0].name == '+':
+            return merge_sums(L[0].args, w)
+
+        # SSRDREC-3-2
+        else:
+            return merge_sums([L[0]], w)
+
+def merge_sums(p, q):
+    # MSRD-1
+    if q == []:
+        return p
+
+    # MSRD-2
+    if p == []:
+        return q
+
+    # MSRD-3
+    h = simplify_sum_rec([p[0]], [p[1]])
+    
+    # MSRD-3-1
+    if h == []:
+        return merge_sums(p[1:], q[1:])
+    # MSRD-3-2
+    elif len(h) == 1:
+        return merge_sums(p[1:], q[1:]).insert(0, h[0])
+    
+    elif len(h) == 2:
+        # MSRD-3-3
+        if h[0] == p[0]:
+            return merge_sums(p[1:], q).insert(0, h[0])
+        
+        # MSRD-3-3
+        elif h[0] == q[0]:
+            return merge_sums(p, q[1:]).insert(0, h[0])
+
+def simplify_rne(u):
+    v = simplify_rne_rec(u)
+    if v == None:
+        return None
+
+    return simplify_rational_number(v)
+
+def simplify_rne_rec(u):
+    if isinstance(u, numbers.Integral):
+        return u
+    elif type(u) is Fraction:
+        if denom(u) == 0:
+            return None
+
+        return u
+    elif type(u) is Function:
+        if len(u.args) == 2:
+            if u.name in "+*-/":
+                v = simplify_rne_rec(u.args[0])
+                w = simplify_rne_rec(u.args[1])
+                if v == None or w == None:
+                    return None
+
+                if u.name == '+':
+                    return eval_sum(v, w)
+                if u.name == '*':
+                    return eval_prod(v, w)
+                if u.name == '-':
+                    return eval_diff(v, w)
+                if u.name == '/':
+                    return eval_quot(v, w)
+            elif u.name == '^':
+                v = simlify_rne_rec(u.args[0])
+                if v == None:
+                    return None
+
+                return eval_power(v, u.args[1])
+
+def eval_quot(v, w):
+    if denom(w) == 0:
+        return None
+
+    return Fraction(numer(v) * denom(w), number(w) * denom(v))
+
+def eval_power(v, n):
+    if numer(v) != 0:
+        if n > 0:
+            s = eval_power(v, n-1)
+            return eval_prod(s, v)
+        elif n == 0:
+            return 1
+        elif n == -1:
+            return Fraction(denom(v), numer(v))
+        elif n < -1:
+            s = Fraction(denom(v), numer(v))
+            return eval_power(s, -n)
+    else:
+        if n >= 1:
+            return 0
+        else:
+            return None
+
+def eval_sum(v, w):
+    if denom(v) * denom(w) == 0:
+        return None
+
+    return Fraction(numer(v)*denom(w) + numer(w)*denom(v), denom(v)*denom(w))
+
+def eval_diff(v, w):
+    if denom(v) * denom(w) == 0:
+        return None
+
+    return Fraction(numer(v)*denom(w) - numer(w)*denom(v), denom(v)*denom(w))
+
+def eval_prod(v, w):
+    if denom(v) * denom(w) == 0:
+        return None
+
+    return Fraction(numer(v)*numer(w), denom(v)*denom(w))
+
+def simplify_rational_number(u):
+    if isinstance(u, number.Integral):
+        return u
+
+    if type(u) is Fraction:
+        n = u.num
+        d = u.denom
+
+        if n % d == 0:
+            return n//d
+
+        g = gcd(n, d)
+        if d > 0:
+            return Fraction(n // g, d // g)
+        else:
+            return Fraction(-n // g, -d // g)
+
+def gcd(a, b):
+    if not isinstance(a, number.Integral) or not isinstance(b, number.Integral):
+        return None
+
+    A = a
+    B = b
+    while B != 0:
+        R = A % B
+        A = B
+        B = R
+
+    return abs(A)
+
+def term(expr):
+    if type(expr) is Var or type(expr) is Function and expr.name != '*':
+        return Function('*', expr)
+
+    if type(expr) is Function and expr.name == '*':
+        if isinstance(expr.args[0], numbers.Number):
+            return Function('*', expr.args[1:], commutative = expr.commutative, associative = expr.associative)
+        else:
+            return expr
+
+    if type(expr) is Fraction or isinstance(expr, numbers.Integral):
+        return None
+
+def const(expr):
+    if type(expr) is Var or type(expr) is Function and expr.name != '*':
+        return 1
+
+    if type(expr) is Function and expr.name == '*':
+        if isinstance(expr.args[0], numbers.Number):
+            return expr.args[0]
+        else:
+            return 1
+
+    if type(expr) is Fraction or isinstance(expr, numbers.Integral):
+        return None
+
+def base(expr):
+    if type(expr) is Var or type(expr) is Function and expr.name != '^':
+        return expr
+
+    if type(expr) is Function and expr.name == '^':
+        return expr.args[0]
+
+    if type(expr) is Fraction or isinstance(expr, numbers.Integral):
+        return None
+
+def exponent(expr):
+    if type(expr) is Var or type(expr) is Function and expr.name != '^':
+        return 1
+
+    if type(expr) is Function and expr.name == '^':
+        return expr.args[1]
+
+    if type(expr) is Fraction or isinstance(expr, numbers.Integral):
+        return None
+
+def numer(expr):
+    if type(expr) is Fraction:
+        return expr.num
+
+    if expr == None:
+        return None
+
+    return expr
+
+def denom(expr):
+    if type(expr) is Fraction:
+        return expr.denom
+
+    if expr == None:
+        return None
+
+    return 1
+
+def less(u, v):
+    # O-1
+    if isinstance(u, number.Numbers) and isinstance(v, number.Numbers):
+        return u < v
+
+    if isinstance(u, number.Numbers) and type(v) is Fraction:
+        return u < v.num / v.denom
+
+    if isinstance(v, number.Numbers) and type(u) is Fraction:
+        return u.num / u.denom < v
+
+    if type(v) is Fraction and type(u) is Fraction:
+        return u.num / u.denom < v.num / v.denom
+
+    # O-2
+    if type(v) is Var and type(v) is Var:
+        return u.name < v.name
+
+    if type(u) is Function and type(v) is Function:
+        # O-3
+        if u.name == '+' and v.name == '+' or u.name == '*' and v.name =='*':
+            for i in range(min(len(u.args), len(v.args))):
+                if less(u.args[i], v.args[i]):
+                    return True
+
+            return len(u.args) < len(v.args)
+
+        # O-4
+        if u.name == '^' and v.name == '^':
+            if base(u) != base(v):
+                return less(base(u), base(v))
+            
+            return less(exponent(u), exponent(v))
+
+        # O-6-a
+        if u.name != v.name:
+            return u.name < v.name
+
+        # O-6-b
+        for i in range(min(len(u.args), len(v.args))):
+            if less(u.args[i], v.args[i]):
+                return True
+
+        return len(u.args) < len(v.args)
+
+    # O-7
+    if (isinstance(u, numbers.Number) or type(u) is Fraction) and not (isinstance(v, numbers.Number) or type(v) is Fraction):
+        return True
+
+    # O-8
+    if type(u) is Function and u.name == '*':
+        if type(v) is Var or type(v) is Function and v.name != '*':
+            return less(u, Function('*', v))
+
+    # O-9
+    if type(u) is Function and u.name == '^':
+        if type(v) is Var or type(v) is Function and v.name not in "^*":
+            return less(u, Function('^', v, 1))
+
+    # O-10
+    if type(u) is Function and u.name == '+':
+        if type(v) is Var or type(v) is Function and v.name not in "+*":
+            return less(u, Function('+', v))
+
+    # O-12
+    if type(u) is Function and u.name not in "+^/-*" and type(v) is Var:
+        if u.name == v.name:
+            return False
+
+        return u.name < v.name
+
+    # O-13
+    return not less(v, u)
+
 #Példa egyszerűsítési mértékekre: minél hosszabb/rövidebb annál "egyszerűbb"
 def m(x):
     return -len(str(x))
 def m2(x):
     return len(str(x))
 
-#Példa szabály: sin([[2k]]x) -> 2*sin(k*x)*cos(k*x)
-sin_rule = Rule(F('sin', AC0('*', E(separate_2, 'k'), Var('x', 'complex'))), #bal oldal (source)
-                AC0('*', F('sin', AC0('*', Var('k', 'integer'), Var('x', 'complex'))), F('cos', AC0('*', Var('k', 'integer'), Var('x', 'complex')))), #jobb oldal (target)
-                'trig')
-#Példa szabály: 1*x -> x
-one_rule = Rule(AC0('*', 1, Var('x', 'complex')), #bal oldal (source)
-                Var('x', 'complex'), #jobb oldal (target)
-                'trig')
-
-#Példa kifejezés: sin(4*a)+sin(2*b)
-expr=AC0('+', F('sin', AC1('*', 'a', 4)), F('sin', AC1('*', 2, 'b')))
-print("expr:", expr)
-print("simplified:", simplify(expr, [sin_rule, one_rule], [eval_tree], m))
-result=simplify(expr, [sin_rule, one_rule], [eval_tree], m)
-#Egy másik mértékkel:
-print("simplified:", simplify(result, [sin_rule, one_rule], [eval_tree], m2))
+##Példa szabály: sin([[2k]]x) -> 2*sin(k*x)*cos(k*x)
+#sin_rule = Rule(F('sin', AC0('*', E(separate_2, 'k'), Var('x', 'complex'))), #bal oldal (source)
+#                AC0('*', F('sin', AC0('*', Var('k', 'integer'), Var('x', 'complex'))), F('cos', AC0('*', Var('k', 'integer'), Var('x', 'complex')))), #jobb oldal (target)
+#                'trig')
+##Példa szabály: 1*x -> x
+#one_rule = Rule(AC0('*', 1, Var('x', 'complex')), #bal oldal (source)
+#                Var('x', 'complex'), #jobb oldal (target)
+#                'trig')
+#
+##Példa kifejezés: sin(4*a)+sin(2*b)
+#expr=AC0('+', F('sin', AC1('*', 'a', 4)), F('sin', AC1('*', 2, 'b')))
+#print("expr:", expr)
+#print("simplified:", simplify(expr, [sin_rule, one_rule], [eval_tree], m))
+#result=simplify(expr, [sin_rule, one_rule], [eval_tree], m)
+##Egy másik mértékkel:
+#print("simplified:", simplify(result, [sin_rule, one_rule], [eval_tree], m2))
