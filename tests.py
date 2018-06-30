@@ -229,5 +229,31 @@ class RationalTest(unittest.TestCase):
         self.assertEqual(simplify_rne(Fraction(4,2)), 2)
         self.assertEqual(simplify_rne(Fraction(2,0)), None)
 
+class SimplifyExprTest(unittest.TestCase):
+    def test_simplify_int_power(self):
+        self.assertEqual(simplify_int_power(2, 2), 4)
+        self.assertEqual(simplify_int_power(Fraction(1,2), 2), Fraction(1,4))
+        self.assertEqual(simplify_int_power(Var("x"), 0), 1)
+        self.assertEqual(simplify_int_power(Var("x"), 1), Var("x"))
+        self.assertEqual(simplify_int_power(Var("x"), 2), Function('^', Var("x"), 2))
+        self.assertEqual(simplify_int_power(Function('^', Var("x"), 2), 2), Function('^', Var("x"), 4))
+        self.assertEqual(simplify_int_power(Function('^', Var("x"), Var("y")), 2), Function('^', Var("x"), Function('*', 2, Var("y"), commutative = True, associative = 1)))
+        self.assertEqual(simplify_int_power(Function('*', Var("x"), Var("y")), 2), Function('*', Function('^', Var("x"), 2), Function('^', Var("y"), 2)))
+
+    def test_simplify_power(self):
+        self.assertEqual(simplify_power(Function('^', 1, None)), None)
+        self.assertEqual(simplify_power(Function('^', None, 1)), None)
+        self.assertEqual(simplify_power(Function('^', None, None)), None)
+        self.assertEqual(simplify_power(Function('^', 0, 1)), 0)
+        self.assertEqual(simplify_power(Function('^', 0, Fraction(1,2))), 0)
+        self.assertEqual(simplify_power(Function('^', 1, Var("x"))), 1)
+        self.assertEqual(simplify_power(Function('^', Var("x"), 2)), Function('^', Var("x"), 2))
+
+    def test_simplify_diff(self):
+        self.assertEqual(simplify_diff(Function('-', Var("a"), Var("b"))), Function('+', Var("a"), Function('*', -1, Var("b"))))
+
+    def test_simplify_quot(self):
+        self.assertEqual(simplify_quot(Function('/', Var("a"), Var("b"))), Function('*', Var("a"), Function('^', Var("b"), -1)))
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

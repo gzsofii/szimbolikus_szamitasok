@@ -352,7 +352,7 @@ def simplify_expr(expr):
         return expr
 
     if type(expr) is Fraction:
-        return simplify_fraction(expr)
+        return simplify_rational_number(expr)
 
     if type(expr) is Function:
         expr.args = map(simplify_expr, expr.args)
@@ -367,6 +367,14 @@ def simplify_expr(expr):
             return simplify_prod(expr)
         if expr.name == '/':
             return simplify_quot(expr)
+
+def simplify_diff(expr):
+    rhs = simplify_product(Function('*', -1, expr.args[1]))
+    return simplify_sum(Function('+', expr.args[0], rhs, commutative = expr.commutative, associative = expr.assoc))
+
+def simplify_quot(expr):
+    rhs = simplify_power(Function('^', expr.args[1], -1))
+    return simplify_product(Function('*', expr.args[0], rhs, commutative = expr.commutative, associative = expr.assoc))
 
 def simplify_power(expr):
     v = expr.args[0]
@@ -390,7 +398,7 @@ def simplify_power(expr):
     return expr
 
 def simplify_int_power(v, n):
-    if isinstance(expr, numbers.Integral) or type(expr) is Fraction:
+    if isinstance(v, numbers.Integral) or type(v) is Fraction:
         return simplify_rne(Function('^', v, n))
 
     if n == 0:
@@ -403,7 +411,7 @@ def simplify_int_power(v, n):
         if v.name == '^':
             r = v.args[0]
             s = v.args[1]
-            p = simplify_product(s, n)
+            p = simplify_product(Function('*', s, n, commutative = True, associative = 1))
 
             if isinstance(p, numbers.Integral):
                 return simplify_int_power(r, p)
@@ -411,12 +419,12 @@ def simplify_int_power(v, n):
             return Function('^', r, p)
 
         if v.name == '*':
-            v.args = map(simplify_int_power, v.args)
+            v.args = list(map(lambda x: simplify_int_power(x, n), v.args))
             return simplify_product(v)
 
-    return Function('^', [v,n]);
+    return Function('^', v, n);
 
-def simplyfy_product(expr):
+def simplify_product(expr):
     # SPRD-1
     if None in expr.args:
         return None
@@ -430,12 +438,12 @@ def simplyfy_product(expr):
         return expr.args[0]
 
     # SPRD-4
-    v = simplify_product_rec(expr.args, expr.commutative, expr.associative)
+    v = simplify_product_rec(expr.args, expr.commutative, expr.assoc)
     
     if len(v) == 1: # SPRD-4-1
         return v[0]
     elif len(v) > 1: # SPRD-4-2
-        return Function('*', v, commutative = expr.commutative, associative = expr.associative)
+        return Function('*', *v, commutative = expr.commutative, associative = expr.assoc)
     elif len(v) == 0: # SPRD-4-3
         return 1
 
@@ -445,7 +453,7 @@ def simplify_product_rec(L, c, a):
         if not (type(L[0]) is Function and L[0].name == '*') and not (type(L[1]) is Function and L[1].name == '*'):
             # SPRDREC-1-1
             if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
-                P = simlify_rne(Function('*', L, commutative = c, associative = a))
+                P = simplify_rne(Function('*', *L, commutative = c, associative = a))
                 if P == 1:
                     return []
                 else:
@@ -460,8 +468,8 @@ def simplify_product_rec(L, c, a):
                 return [L[0]]
 
             # SPRDREC-1-3
-            if base(L[0]) == base(L[2]):
-                S = simplify_sum(Function('+', exponent(L[0]), exponent(L[1])))
+            if base(L[0]) == base(L[1]):
+                S = simplify_sum(Function('+', exponent(L[0]), exponent(L[1], commutative = c, associative = 1 if a != -1 else -1)))
                 P = simplyfy_power(Function('^', base(L[0]), S))
                 if isinstance(P, numbers.Number) and P == 1:
                     return []
@@ -527,24 +535,24 @@ def merge_product(p, q, c, a):
         elif h[0] == q[0]:
             return merge_products(p, q[1:], c, a).insert(0, h[0])
 
-def simplyfy_sum(expr):
+def simplify_sum(expr):
     # SSRD-1
     if None in expr.args:
         return None
 
     # SSRD-3
-    if len(ex, c, gpr.args) == 1:
+    if len(expr.args) == 1:
         return expr.args[0]
 
     # SSRD-4
-    v = simplify_sum_rec(expr.args, expr.commutative, expr.associative)
+    v = simplify_sum_rec(expr.args, expr.commutative, expr.assoc)
     
     if len(v) == 1: # SSRD-4-1
         return v[0]
     elif len(v) > 1: # SSRD-4-2
-        return Function('+', v, commutative = expr.commutative, associative = expr.associative)
+        return Function('+', *v, commutative = expr.commutative, associative = expr.assoc)
     elif len(v) == 0: # SSRD-4-3
-        return 1
+        return 0
 
 def simplify_sum_rec(L, c, a):
     if len(L) == 2:
@@ -552,7 +560,7 @@ def simplify_sum_rec(L, c, a):
         if not (type(L[0]) is Function and L[0].name == '+') and not (type(L[1]) is Function and L[1].name == '+'):
             # SSRDREC-1-1
             if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
-                P = simlify_rne(Function('+', L, commutative = c, associative = a))
+                P = simlify_rne(Function('+', *L, commutative = c, associative = a))
                 if P == 0:
                     return []
                 else:
@@ -567,7 +575,7 @@ def simplify_sum_rec(L, c, a):
                 return [L[0]]
 
             # SSRDREC-1-3
-            if term(L[0]) == term(L[2]):
+            if term(L[0]) == term(L[1]):
                 S = simplify_sum(Function('+', const(L[0]), const(L[1])))
                 P = simplyfy_product(Function('*', term(L[0]), S))
                 if isinstance(P, numbers.Number) and P == 0:
