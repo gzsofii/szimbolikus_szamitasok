@@ -278,7 +278,7 @@ def eval_tree(tree):
 #Az egyszerűsítés egy lépése
 #Alkalmazza a megadott transzformációkat és átírási szabályokat.
 #Az eredményt csak akkor tartja meg ha egyszerűbb a megadott mérték szerint.
-def simplify_step(expr, rules, transformations, simplicity_measure):
+def sZoLZoLimplify_step(expr, rules, transformations, simplicity_measure):
     for trf in transformations:
         expr = trf(copy.deepcopy(expr))
     for rule in rules:
@@ -477,29 +477,29 @@ def simplify_product_rec(L, c, a):
 
         # SPRDREC-2-1
         elif type(L[0]) is Function and L[0].name == '*' and type(L[1]) is Function and L[1].name == '*':
-            return merge_products(L[0].args, L[1].args)
+            return merge_products(L[0].args, L[1].args, c, a)
 
         # SPRDREC-2-2
         elif type(L[0]) is Function and L[0].name == '*':
-            return merge_products(L[0].args, [L[1]])
+            return merge_products(L[0].args, [L[1]], c, a)
 
         # SPRDREC-2-3
         elif type(L[1]) is Function and L[1].name == '*':
-            return merge_products([L[0]], L[1].args)
+            return merge_products([L[0]], L[1].args, c, a)
 
     # SPRDREC-3
     elif len(L) > 2:
-        w = simplify_product_rec(L[1:])
+        w = simplify_product_rec(L[1:], c, a)
 
         # SPRDREC-3-1
         if type(L[0]) is Function and L[0].name == '*':
-            return merge_products(L[0].args, w)
+            return merge_products(L[0].args, w, c, a)
 
         # SPRDREC-3-2
         else:
-            return merge_products([L[0]], w)
+            return merge_products([L[0]], w, c, a)
 
-def merge_product(p, q):
+def merge_product(p, q, c, a):
     # MPRD-1
     if q == []:
         return p
@@ -509,23 +509,23 @@ def merge_product(p, q):
         return q
 
     # MPRD-3
-    h = simplify_product_rec([p[0]], [p[1]])
+    h = simplify_product_rec([p[0]], [p[1]], c, a)
     
     # MPRD-3-1
     if h == []:
-        return merge_products(p[1:], q[1:])
+        return merge_products(p[1:], q[1:], c, a)
     # MPRD-3-2
     elif len(h) == 1:
-        return merge_products(p[1:], q[1:]).insert(0, h[0])
+        return merge_products(p[1:], q[1:], c, a).insert(0, h[0])
     
     elif len(h) == 2:
         # MPRD-3-3
         if h[0] == p[0]:
-            return merge_products(p[1:], q).insert(0, h[0])
+            return merge_products(p[1:], q, c, a).insert(0, h[0])
         
         # MPRD-3-3
         elif h[0] == q[0]:
-            return merge_products(p, q[1:]).insert(0, h[0])
+            return merge_products(p, q[1:], c, a).insert(0, h[0])
 
 def simplyfy_sum(expr):
     # SSRD-1
@@ -533,7 +533,7 @@ def simplyfy_sum(expr):
         return None
 
     # SSRD-3
-    if len(expr.args) == 1:
+    if len(ex, c, gpr.args) == 1:
         return expr.args[0]
 
     # SSRD-4
@@ -584,29 +584,29 @@ def simplify_sum_rec(L, c, a):
 
         # SSRDREC-2-1
         elif type(L[0]) is Function and L[0].name == '+' and type(L[1]) is Function and L[1].name == '+':
-            return merge_sums(L[0].args, L[1].args)
+            return merge_sums(L[0].args, L[1].args, c, a)
 
         # SSRDREC-2-2
         elif type(L[0]) is Function and L[0].name == '+':
-            return merge_sums(L[0].args, [L[1]])
+            return merge_sums(L[0].args, [L[1]], c, a)
 
         # SSRDREC-2-3
         elif type(L[1]) is Function and L[1].name == '+':
-            return merge_sums([L[0]], L[1].args)
+            return merge_sums([L[0]], L[1].args, c, a)
 
     # SSRDREC-3
     elif len(L) > 2:
-        w = simplify_sum_rec(L[1:])
+        w = simplify_sum_rec(L[1:], c, a)
 
         # SSRDREC-3-1
         if type(L[0]) is Function and L[0].name == '+':
-            return merge_sums(L[0].args, w)
+            return merge_sums(L[0].args, w, c, a)
 
         # SSRDREC-3-2
         else:
-            return merge_sums([L[0]], w)
+            return merge_sums([L[0]], w, c, a)
 
-def merge_sums(p, q):
+def merge_sums(p, q, c, a):
     # MSRD-1
     if q == []:
         return p
@@ -616,24 +616,24 @@ def merge_sums(p, q):
         return q
 
     # MSRD-3
-    h = simplify_sum_rec([p[0]], [p[1]])
+    h = simplify_sum_rec([p[0]], [p[1]], c, a)
     
     # MSRD-3-1
     if h == []:
-        return merge_sums(p[1:], q[1:])
+        return merge_sums(p[1:], q[1:], c, a)
 
     # MSRD-3-2
     elif len(h) == 1:
-        return merge_sums(p[1:], q[1:]).insert(0, h[0])
+        return merge_sums(p[1:], q[1:], c, a).insert(0, h[0])
     
     elif len(h) == 2:
         # MSRD-3-3
         if h[0] == p[0]:
-            return merge_sums(p[1:], q).insert(0, h[0])
+            return merge_sums(p[1:], q, c, a).insert(0, h[0])
         
         # MSRD-3-3
         elif h[0] == q[0]:
-            return merge_sums(p, q[1:]).insert(0, h[0])
+            return merge_sums(p, q[1:], c, a).insert(0, h[0])
 
 def simplify_rne(u):
     v = simplify_rne_rec(u)
