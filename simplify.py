@@ -278,7 +278,7 @@ def eval_tree(tree):
 #Az egyszerűsítés egy lépése
 #Alkalmazza a megadott transzformációkat és átírási szabályokat.
 #Az eredményt csak akkor tartja meg ha egyszerűbb a megadott mérték szerint.
-def sZoLZoLimplify_step(expr, rules, transformations, simplicity_measure):
+def simplify_step(expr, rules, transformations, simplicity_measure):
     for trf in transformations:
         expr = trf(copy.deepcopy(expr))
     for rule in rules:
