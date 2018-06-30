@@ -42,11 +42,11 @@ inv_rules.append(sin_1_inv)
 
 
 cos_1 = Rule(F('cos', AC0('+', Var('x','complex'), Var('y', 'complex'))), 
- AC0('-', AC1('*', F('cos', Var('x','complex')), F('cos', Var('y','complex'))), AC1('*', F('sin', Var('x','complex')), F('sin', Var('y','complex')))),
+ F('-', AC1('*', F('cos', Var('x','complex')), F('cos', Var('y','complex'))), AC1('*', F('sin', Var('x','complex')), F('sin', Var('y','complex')))),
  'trig') 
 rules.append(cos_1)      
 
-cos_1_inv = Rule(AC0('-', AC1('*', F('cos', Var('x','complex')), F('cos', Var('y','complex'))), AC1('*', F('sin', Var('x','complex')), F('sin', Var('y','complex')))),
+cos_1_inv = Rule(F('-', AC1('*', F('cos', Var('x','complex')), F('cos', Var('y','complex'))), AC1('*', F('sin', Var('x','complex')), F('sin', Var('y','complex')))),
         F('cos', AC0('+', Var('x','complex'), Var('y', 'complex'))), 
         'trig') 
 inv_rules.append(cos_1_inv)   

@@ -41,7 +41,7 @@ class Function:
                 print("Invalid keyword argument: {} = {}".format(k, v))
     #Kiírás (konvertálás string-é)
     def __repr__(self):
-        if self.name in "+-*/%":
+        if self.name in "+-*/%^":
             if len(self.args) == 1:
                 return "("+self.name+str(self.args[0])+")"
             else:
