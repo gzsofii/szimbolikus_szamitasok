@@ -83,10 +83,6 @@ class Fraction:
             self = None
             return
 
-        if denom == 0:
-            self = None
-            return
-
         self.num = num 
         self.denom = denom
 
@@ -625,6 +621,7 @@ def merge_sums(p, q):
     # MSRD-3-1
     if h == []:
         return merge_sums(p[1:], q[1:])
+
     # MSRD-3-2
     elif len(h) == 1:
         return merge_sums(p[1:], q[1:]).insert(0, h[0])
@@ -648,11 +645,13 @@ def simplify_rne(u):
 def simplify_rne_rec(u):
     if isinstance(u, numbers.Integral):
         return u
+
     elif type(u) is Fraction:
         if denom(u) == 0:
             return None
 
         return u
+
     elif type(u) is Function:
         if len(u.args) == 2:
             if u.name in "+*-/":
@@ -670,17 +669,17 @@ def simplify_rne_rec(u):
                 if u.name == '/':
                     return eval_quot(v, w)
             elif u.name == '^':
-                v = simlify_rne_rec(u.args[0])
+                v = simplify_rne_rec(u.args[0])
                 if v == None:
                     return None
 
                 return eval_power(v, u.args[1])
 
 def eval_quot(v, w):
-    if denom(w) == 0:
+    if numer(w)*denom(v) == 0:
         return None
 
-    return Fraction(numer(v) * denom(w), number(w) * denom(v))
+    return Fraction(numer(v) * denom(w), numer(w) * denom(v))
 
 def eval_power(v, n):
     if numer(v) != 0:

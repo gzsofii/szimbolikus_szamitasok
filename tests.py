@@ -1,5 +1,5 @@
 import unittest
-from simplify import less, Fraction, Var, Function, base, exponent, const, term, gcd
+from simplify import *
 
 class HelperTests(unittest.TestCase):
     def test_base(self):
@@ -157,6 +157,77 @@ class OrderingTests(unittest.TestCase):
 
     def test_var_vs_func(self):
         self.assertTrue(less(Var("f"), Function("g")))
+
+class RationalTest(unittest.TestCase):
+    def test_numer(self):
+        self.assertEqual(numer(1), 1)
+        self.assertEqual(numer(Fraction(1, 2)), 1)
+        self.assertEqual(numer(None), None)
+
+    def test_denom(self):
+        self.assertEqual(denom(2), 1)
+        self.assertEqual(denom(Fraction(1, 2)), 2)
+        self.assertEqual(denom(None), None)
+
+    def test_simplify_rational_number(self):
+        self.assertEqual(simplify_rational_number(1), 1)
+        self.assertEqual(simplify_rational_number(Fraction(4, 2)), 2)
+        self.assertEqual(simplify_rational_number(Fraction(6, 4)), Fraction(3, 2))
+        self.assertEqual(simplify_rational_number(Fraction(-6, 4)), Fraction(-3, 2))
+        self.assertEqual(simplify_rational_number(Fraction(6, -4)), Fraction(-3, 2))
+        self.assertEqual(simplify_rational_number(Fraction(-6, -4)), Fraction(3, 2))
+
+    def test_eval_prod(self):
+        self.assertEqual(eval_prod(2, 3), Fraction(6, 1))
+        self.assertEqual(eval_prod(2, Fraction(3, 4)), Fraction(6, 4))
+        self.assertEqual(eval_prod(Fraction(2, 3), Fraction(3, 4)), Fraction(6, 12))
+        self.assertEqual(eval_prod(2, Fraction(3, 0)), None)
+
+    def test_eval_diff(self):
+        self.assertEqual(eval_diff(2, 3), Fraction(-1, 1))
+        self.assertEqual(eval_diff(1, Fraction(1,2)), Fraction(1,2))
+        self.assertEqual(eval_diff(Fraction(1,2), Fraction(1,2)), Fraction(0,4))
+        self.assertEqual(eval_diff(Fraction(1,2), Fraction(-1,2)), Fraction(4,4))
+        self.assertEqual(eval_diff(1, Fraction(1,0)), None)
+
+    def test_eval_sum(self):
+        self.assertEqual(eval_sum(2, 3), Fraction(5, 1))
+        self.assertEqual(eval_sum(1, Fraction(1,2)), Fraction(3,2))
+        self.assertEqual(eval_sum(Fraction(1,2), Fraction(1,2)), Fraction(4,4))
+        self.assertEqual(eval_sum(1, Fraction(1,0)), None)
+
+    def test_eval_quot(self):
+        self.assertEqual(eval_quot(1, 2), Fraction(1,2))
+        self.assertEqual(eval_quot(2, 0), None)
+        self.assertEqual(eval_quot(2, Fraction(1,2)), Fraction(4,1))
+
+    def test_eval_power(self):
+        self.assertEqual(eval_power(0, 1), 0)
+        self.assertEqual(eval_power(0, 0), None)
+        self.assertEqual(eval_power(0, -1), None)
+        self.assertEqual(eval_power(2, 3), Fraction(8, 1))
+        self.assertEqual(eval_power(Fraction(1, 2), 3), Fraction(1, 8))
+        self.assertEqual(eval_power(2, -3), Fraction(1, 8))
+        self.assertEqual(eval_power(Fraction(1, 2), -3), Fraction(8, 1))
+        self.assertEqual(eval_power(Fraction(1, 2), -1), Fraction(2, 1))
+
+    def test_simplify_rne_rec(self):
+        self.assertEqual(simplify_rne_rec(1), 1)
+        self.assertEqual(simplify_rne_rec(Fraction(2, 4)), Fraction(2,4))
+        self.assertEqual(simplify_rne_rec(Fraction(2, 0)), None)
+        self.assertEqual(simplify_rne_rec(Function('+', 1, 2)), Fraction(3, 1))
+        self.assertEqual(simplify_rne_rec(Function('-', 1, 2)), Fraction(-1, 1))
+        self.assertEqual(simplify_rne_rec(Function('*', 1, 2)), Fraction(2, 1))
+        self.assertEqual(simplify_rne_rec(Function('/', 1, 2)), Fraction(1, 2))
+        self.assertEqual(simplify_rne_rec(Function('^', 1, 2)), Fraction(1, 1))
+        self.assertEqual(simplify_rne_rec(Function('^', Fraction(1, 0), 2)), None)
+
+    def test_simplify_rne(self):
+        self.assertEqual(simplify_rne(1), 1)
+        self.assertEqual(simplify_rne(Fraction(1,2)), Fraction(1,2))
+        self.assertEqual(simplify_rne(Fraction(2,1)), 2)
+        self.assertEqual(simplify_rne(Fraction(4,2)), 2)
+        self.assertEqual(simplify_rne(Fraction(2,0)), None)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
