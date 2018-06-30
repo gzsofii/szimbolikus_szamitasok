@@ -79,7 +79,7 @@ class External:
 
 class Fraction:
     def __init__(self, num, denom):
-        if not num.is_integer() or not denom.is_integer():
+        if not isinstance(num, numbers.Integral) or not isinstance(denom, numbers.Integral):
             self = None
             return
 
@@ -448,7 +448,7 @@ def simplify_product_rec(L, c, a):
         # SPRDREC-1
         if not (type(L[0]) is Function and L[0].name == '*') and not (type(L[1]) is Function and L[1].name == '*'):
             # SPRDREC-1-1
-            if isinstance(L[0], number.Numbers) and isinstance(L[1], number.Numbers):
+            if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
                 P = simlify_rne(Function('*', L, commutative = c, associative = a))
                 if P == 1:
                     return []
@@ -456,11 +456,11 @@ def simplify_product_rec(L, c, a):
                     return [P]
             
             # SPRDREC-1-2-a
-            if isinstance(L[0], number.Numbers) and L[0] == 1:
+            if isinstance(L[0], numbers.Number) and L[0] == 1:
                 return [L[1]]
 
             # SPRDREC-1-2-b
-            if isinstance(L[1], number.Numbers) and L[1] == 1:
+            if isinstance(L[1], numbers.Number) and L[1] == 1:
                 return [L[0]]
 
             # SPRDREC-1-3
@@ -473,7 +473,7 @@ def simplify_product_rec(L, c, a):
                     return [P]
 
             # SPRDREC-1-4
-            if c and before(L[1], L[0]):
+            if c and less(L[1], L[0]):
                 return [L[1], L[0]]
 
             # SPRDREC-1-5
@@ -555,7 +555,7 @@ def simplify_sum_rec(L, c, a):
         # SSRDREC-1
         if not (type(L[0]) is Function and L[0].name == '+') and not (type(L[1]) is Function and L[1].name == '+'):
             # SSRDREC-1-1
-            if isinstance(L[0], number.Numbers) and isinstance(L[1], number.Numbers):
+            if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
                 P = simlify_rne(Function('+', L, commutative = c, associative = a))
                 if P == 0:
                     return []
@@ -563,11 +563,11 @@ def simplify_sum_rec(L, c, a):
                     return [P]
             
             # SSRDREC-1-2-a
-            if isinstance(L[0], number.Numbers) and L[0] == 0:
+            if isinstance(L[0], numbers.Number) and L[0] == 0:
                 return [L[1]]
 
             # SSRDREC-1-2-b
-            if isinstance(L[1], number.Numbers) and L[1] == 0:
+            if isinstance(L[1], numbers.Number) and L[1] == 0:
                 return [L[0]]
 
             # SSRDREC-1-3
@@ -580,7 +580,7 @@ def simplify_sum_rec(L, c, a):
                     return [P]
 
             # SSRDREC-1-4
-            if c and before(L[1], L[0]):
+            if c and less(L[1], L[0]):
                 return [L[1], L[0]]
 
             # SSRDREC-1-5
@@ -719,7 +719,7 @@ def eval_prod(v, w):
     return Fraction(numer(v)*numer(w), denom(v)*denom(w))
 
 def simplify_rational_number(u):
-    if isinstance(u, number.Integral):
+    if isinstance(u, numbers.Integral):
         return u
 
     if type(u) is Fraction:
@@ -736,7 +736,7 @@ def simplify_rational_number(u):
             return Fraction(-n // g, -d // g)
 
 def gcd(a, b):
-    if not isinstance(a, number.Integral) or not isinstance(b, number.Integral):
+    if not isinstance(a, numbers.Integral) or not isinstance(b, numbers.Integral):
         return None
 
     A = a
@@ -754,7 +754,7 @@ def term(expr):
 
     if type(expr) is Function and expr.name == '*':
         if isinstance(expr.args[0], numbers.Number):
-            return Function('*', expr.args[1:], commutative = expr.commutative, associative = expr.associative)
+            return Function('*', *expr.args[1:], commutative = expr.commutative, associative = expr.assoc)
         else:
             return expr
 
@@ -814,20 +814,20 @@ def denom(expr):
 
 def less(u, v):
     # O-1
-    if isinstance(u, number.Numbers) and isinstance(v, number.Numbers):
+    if isinstance(u, numbers.Number) and isinstance(v, numbers.Number):
         return u < v
 
-    if isinstance(u, number.Numbers) and type(v) is Fraction:
+    if isinstance(u, numbers.Number) and type(v) is Fraction:
         return u < v.num / v.denom
 
-    if isinstance(v, number.Numbers) and type(u) is Fraction:
+    if isinstance(v, numbers.Number) and type(u) is Fraction:
         return u.num / u.denom < v
 
     if type(v) is Fraction and type(u) is Fraction:
         return u.num / u.denom < v.num / v.denom
 
     # O-2
-    if type(v) is Var and type(v) is Var:
+    if type(u) is Var and type(v) is Var:
         return u.name < v.name
 
     if type(u) is Function and type(v) is Function:
@@ -847,15 +847,16 @@ def less(u, v):
             return less(exponent(u), exponent(v))
 
         # O-6-a
-        if u.name != v.name:
-            return u.name < v.name
+        if u.name not in "+^-/*" and v.name not in "+^-*/":
+            if u.name != v.name:
+                return u.name < v.name
 
-        # O-6-b
-        for i in range(min(len(u.args), len(v.args))):
-            if less(u.args[i], v.args[i]):
-                return True
+            # O-6-b
+            for i in range(min(len(u.args), len(v.args))):
+                if less(u.args[i], v.args[i]):
+                    return True
 
-        return len(u.args) < len(v.args)
+            return len(u.args) < len(v.args)
 
     # O-7
     if (isinstance(u, numbers.Number) or type(u) is Fraction) and not (isinstance(v, numbers.Number) or type(v) is Fraction):
