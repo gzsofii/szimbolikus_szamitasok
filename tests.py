@@ -359,8 +359,6 @@ class ApplyTest(unittest.TestCase):
 		self.assertEqual(apply_rule_in_tree(trig_rules.trig_rules[8], e1), 1)
 
 	def test_apply_2(self):
-		# NEM JÓ!
-		# ez az apply hatásköre?
 		e1 = string_to_expr.expression_from_string("cos(2*x)^2+sin(x*2)^2")
 		e1 = simplify_expr(e1)
 		self.assertEqual(apply_rule_in_tree(trig_rules.trig_rules[8], e1), 1)
