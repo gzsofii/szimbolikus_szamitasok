@@ -101,7 +101,9 @@ class SimplifyMiniMax:
         print("max iterations: "+str(self._iterations))
         print("eps: "+str(self._eps))
         
-        while self._measure(self._root) < self._eps and currentIteration < self._iterations:
+        last = None
+        while last != self._root and self._measure(self._root) < self._eps and currentIteration < self._iterations:
+            last = self._root
             print("[MiniMax] iteration: "+str(currentIteration)+" expression: "+str(self._root)+" measure: "+str(self._measure(self._root)))
             self.GetNextMove()
             currentIteration += 1
