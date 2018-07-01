@@ -2,6 +2,12 @@ import unittest
 from simplify import *
 import rules
 
+import pow_rules
+import trig_rules
+import minimax
+from measure import *
+import string_to_expr
+
 class HelperTests(unittest.TestCase):
     def test_base(self):
         a = Var("a")
@@ -348,5 +354,34 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(len(rules.filter_rules(rule_list, 'tag1')), 1)
 
 
+#class MinimaxTest(unittest.TestCase):
+#	def test_minimax_1(self):
+#		print("*************** MINIMAX METHOD ****************")
+#		# 10*a + b^4 + a * 20 + 10
+#		expr = AC0('+', AC0('*', 10, Var('a', 'complex')), F('^', Var('b', 'complex'), 4), AC0('*', Var('a', 'complex'), 20), 10)
+#		Simplifier = minimax.SimplifyMiniMax(expr, pow_rules.pow_rules, 5, 100, [simplify_expr], apply_rule_in_tree, m2)
+#		Simplifier.MiniMax()
+#		
+#	def test_minimax_2(self):
+#		print("*************** MINIMAX METHOD ****************")
+#		expr = A0('/', 2, 10)
+#		Simplifier = minimax.SimplifyMiniMax(expr, pow_rules.pow_rules, 5, 100, [simplify_expr], apply_rule_in_tree, m2)
+#		Simplifier.MiniMax()
+
+
+class StringToExprTest(unittest.TestCase):
+	def test_tokenizer(self):
+		self.assertEqual(string_to_expr.make_tokens(" 0 "), [0])
+		self.assertEqual(string_to_expr.make_tokens(" 10 +    c"), [10, '+', 'c'])
+		self.assertEqual(string_to_expr.make_tokens("cos(10*x)"), ['cos', '(', 10, '*', 'x', ')'])
+		self.assertEqual(string_to_expr.make_tokens("sin( 6*x + d)^2"), ['sin', '(', 6, '*', 'x', '+', 'd', ')', '^', 2])
+	def test_postfix(self):
+		#TODO
+		pass
+	def test_postfix_to_expression(self):
+		#TODO
+		pass
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+	
