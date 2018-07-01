@@ -8,6 +8,14 @@ def expression_from_string(str):
 	return postfix_to_expression(postfix)
 
 def postfix_to_expression(tokens):
+	"""
+	postfix alakból kifejezést állít elő
+	input: az infix_to_postfix outputja
+	output: a simplify-ban definiált Function vagy Var vagy egy konstans érték
+	a változókat complex-nek tag-eli
+	
+	pl: [('var', 2), ('var', 'x'), ('op', '+', 2)] -> AC0('+', 2, Var('x', 'complex'))
+	"""
 	if tokens == None:
 		return None
 	stack = []
@@ -37,6 +45,17 @@ def postfix_to_expression(tokens):
 	return stack[0]
 
 def infix_to_postfix(tokens):
+	""" 
+	infix tokenlistából postfix-et csinál
+	a kimeneti listában tuple-k szerepelnek:  
+		konstansok: ('var', 10) --- egész számot feltételez
+		változók:   ('var', 'x')
+		operátorok: ('op', '+', 2), ('op', 'cos', 1), ('op', 'f', 3)
+			--- 2: függvény/operátor neve, 3: aritás
+	egy string tokenből operátor (függvény) lesz, ha '(' jön utána, 
+	különben változóként értelmeződik
+	pl: ['x', '+', 10] -> [('var', 'x'), ('var', 10), ('op', '+', 2)]
+	"""
 	operators = []
 	numOfOperands = []
 	postfix = []
@@ -90,6 +109,13 @@ def prec(op):
 		return 4
 
 def make_tokens(str):
+	"""
+	tokenekre bont egy string-et 
+	[számként] egész számok 
+	[stringként] zárójelek, vesszők, operátorok, egybefüggő szövegek (a-zA-Z_)
+	minden mást (pl szóköz) figyelmen kívük hagy
+	pl: "  10*x - f(x )" -> [10, '*', 'x', '-', 'f', '(', 'x', ')']
+	"""
 	i = 0
 	tokens = []
 	while i < len(str):
