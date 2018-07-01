@@ -370,18 +370,22 @@ class RuleTests(unittest.TestCase):
 
 
 class StringToExprTest(unittest.TestCase):
-	def test_tokenizer(self):
-		self.assertEqual(string_to_expr.make_tokens(" 0 "), [0])
-		self.assertEqual(string_to_expr.make_tokens(" 10 +    c"), [10, '+', 'c'])
-		self.assertEqual(string_to_expr.make_tokens("cos(10*x)"), ['cos', '(', 10, '*', 'x', ')'])
-		self.assertEqual(string_to_expr.make_tokens("sin( 6*x + d)^2"), ['sin', '(', 6, '*', 'x', '+', 'd', ')', '^', 2])
-	def test_postfix(self):
-		#TODO
-		pass
-	def test_postfix_to_expression(self):
-		#TODO
-		pass
+    def test_tokenizer(self):
+        self.assertEqual(string_to_expr.make_tokens(" 0 "), [0])
+        self.assertEqual(string_to_expr.make_tokens(" 10 +    c"), [10, '+', 'c'])
+        self.assertEqual(string_to_expr.make_tokens("cos(10*x)"), ['cos', '(', 10, '*', 'x', ')'])
+        self.assertEqual(string_to_expr.make_tokens("sin( 6*x + d)^2"), ['sin', '(', 6, '*', 'x', '+', 'd', ')', '^', 2])
+    def test_postfix(self):
+        self.assertEqual(string_to_expr.infix_to_postfix([3]), [('var',3)])
+        self.assertEqual(string_to_expr.infix_to_postfix([2,'*','x']), [('var',2), ('var','x'), ('op','*',2)])
+        self.assertEqual(string_to_expr.infix_to_postfix([2,'*','x','*','y']), [('var',2), ('var','x'), ('op','*',2), ('var','y'), ('op','*',2)])
+        self.assertEqual(string_to_expr.infix_to_postfix([3,'^','(','x','+','y',')']), [('var',3), ('var','x'), ('var','y'),('op','+',2),('op','^',2)])
+        self.assertEqual(string_to_expr.infix_to_postfix([5,'*','cos','(','a',')']), [('var',5), ('var','a'),('op','cos',1),('op','*',2)])    
+    def test_postfix_to_expression(self):
+        self.assertEqual(string_to_expr.postfix_to_expression([('var',3)]), 3)
+        self.assertEqual(string_to_expr.postfix_to_expression([('var',3), ('var','x'), ('op','+',2)]), AC0('+',3,Var('x','complex')) )
+        self.assertEqual(string_to_expr.postfix_to_expression([('var','x'), ('var',2), ('op','^',2), ('op','cos',1)]), F('cos',F('^',Var('x','complex'),2)))
+        self.assertEqual(string_to_expr.postfix_to_expression([('var','x'),('var',4),('op','+',2),('var',2),('op','^',2),('op','cos',1)]), F('cos',F('^',AC0('+',Var('x','complex'),4), 2)))
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
-	
