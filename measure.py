@@ -1,5 +1,10 @@
 from simplify import *
 
+def m1(x):
+    return -len(str(x))
+def m2(x):
+    return len(str(x))
+
 def m(tree):
     m = 0
     #súlyok

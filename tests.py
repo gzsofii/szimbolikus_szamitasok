@@ -1,5 +1,6 @@
 import unittest
 from simplify import *
+import rules
 
 class HelperTests(unittest.TestCase):
     def test_base(self):
@@ -328,6 +329,24 @@ class SimplifyExprTest(unittest.TestCase):
         self.assertEqual(simplify_expr(Function('-', Function('+', 2, 2), Function('+', 2, 2))), 0)       
         self.assertEqual(simplify_expr(Function('/', Function('+', 2, 2), Function('+', 2, 2))), 1)       
         self.assertEqual(simplify_expr(Function('^', Function('+', 2, 2), Function('+', 2, 2))), 256)       
+
+class RuleTests(unittest.TestCase):
+    def test_add_rule(self):
+        rule_list = []
+        rules.add_rule(rule_list, 1, 1, 'oneway')
+        self.assertEqual(len(rule_list), 1)
+        rules.add_rule(rule_list, 2, 3, [])
+        self.assertEqual(len(rule_list), 3)
+
+    def test_filter_rules(self):
+        self.assertEqual(len(rules.filter_rules([], ['notag'])), 0)
+
+        rule_list = []
+        rules.add_rule(rule_list, 1, 1, 'oneway', 'tag1')
+        self.assertEqual(len(rules.filter_rules(rule_list, 'notag')), 0)
+        self.assertEqual(len(rules.filter_rules(rule_list, 'oneway')), 1)
+        self.assertEqual(len(rules.filter_rules(rule_list, 'tag1')), 1)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

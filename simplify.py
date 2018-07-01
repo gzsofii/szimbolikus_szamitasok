@@ -255,9 +255,6 @@ def apply_rule_in_tree(rule, tree):
 # Egyszerűsítés
 ##############################################
 
-def eval_tree(tree):
-    return simplify_expr(tree)
-
 #Az egyszerűsítés egy lépése
 #Alkalmazza a megadott transzformációkat és átírási szabályokat.
 #Az eredményt csak akkor tartja meg ha egyszerűbb a megadott mérték szerint.
@@ -350,6 +347,8 @@ def simplify_expr(expr):
             return simplify_product(expr)
         if expr.name == '/':
             return simplify_quot(expr)
+
+    return expr
 
 def simplify_diff(expr):
     rhs = simplify_product(Function('*', -1, expr.args[1]))
@@ -877,25 +876,3 @@ def less(u, v):
     # O-13
     return not less(v, u)
 
-#Példa egyszerűsítési mértékekre: minél hosszabb/rövidebb annál "egyszerűbb"
-def m(x):
-    return -len(str(x))
-def m2(x):
-    return len(str(x))
-
-##Példa szabály: sin([[2k]]x) -> 2*sin(k*x)*cos(k*x)
-#sin_rule = Rule(F('sin', AC0('*', E(separate_2, 'k'), Var('x', 'complex'))), #bal oldal (source)
-#                AC0('*', F('sin', AC0('*', Var('k', 'integer'), Var('x', 'complex'))), F('cos', AC0('*', Var('k', 'integer'), Var('x', 'complex')))), #jobb oldal (target)
-#                'trig')
-##Példa szabály: 1*x -> x
-#one_rule = Rule(AC0('*', 1, Var('x', 'complex')), #bal oldal (source)
-#                Var('x', 'complex'), #jobb oldal (target)
-#                'trig')
-#
-##Példa kifejezés: sin(4*a)+sin(2*b)
-#expr=AC0('+', F('sin', AC1('*', 'a', 4)), F('sin', AC1('*', 2, 'b')))
-#print("expr:", expr)
-#print("simplified:", simplify(expr, [sin_rule, one_rule], [eval_tree], m))
-#result=simplify(expr, [sin_rule, one_rule], [eval_tree], m)
-##Egy másik mértékkel:
-#print("simplified:", simplify(result, [sin_rule, one_rule], [eval_tree], m2))
