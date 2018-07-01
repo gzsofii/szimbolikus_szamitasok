@@ -34,3 +34,6 @@ add_rule(pow_rules,
 	F('^', F('^', Var('x', 'complex'), Var('a', 'complex')), Var('b', 'complex')),
 	F('^', Var('x', 'complex'), AC0('*', Var('a', 'complex'), Var('b', 'complex'))),
 	'pow')
+
+if __name__ == '__main__':
+	print(pow_rules)
