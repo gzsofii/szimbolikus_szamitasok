@@ -353,6 +353,16 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(len(rules.filter_rules(rule_list, 'oneway')), 1)
         self.assertEqual(len(rules.filter_rules(rule_list, 'tag1')), 1)
 
+class ApplyTest(unittest.TestCase):
+	def test_apply_1(self):
+		e1 = string_to_expr.expression_from_string("cos(2*x)^2+sin(2*x)^2")
+		self.assertEqual(apply_rule_in_tree(trig_rules.trig_rules[8], e1), 1)
+
+	def test_apply_2(self):
+		# NEM JÓ!
+		# ez az apply hatásköre?
+		e1 = string_to_expr.expression_from_string("cos(2*x)^2+sin(x*2)^2")
+		self.assertEqual(apply_rule_in_tree(trig_rules.trig_rules[8], e1), 1)
 
 def expr_simplify_to_the_same(tester, s_expr1, s_expr2):
 	expr1 = string_to_expr.expression_from_string(s_expr1)
@@ -374,10 +384,10 @@ class MinimaxTest(unittest.TestCase):
 	def test_minimax_1(self):
 		expr_simplify_to_the_same(self, "x^2*y^2", "(x*y)^2")
 	
-	# associative nem egyezik, NEM OK
+	##associative nem egyezik, NEM OK
 	#def test_minimax_2(self):
 	
-	# EZEK NEM JÓK
+	##EZEK NEM JÓK
 	#	expr_simplify_to_the_same(self, "x^a*x^b", "x^(a+b)")
 	#def test_minimax_3(self):
 	#	expr_simplify_to_the_same(self, "(x^a)^b", "x^(a*b)")
@@ -390,11 +400,11 @@ class SimplifyTest(unittest.TestCase):
 	def test_simplify_1(self):
 		expr_simplify_to_the_same_old(self, "x^2*y^2", "(x*y)^2")
 	
-	# associative nem egyezik, NEM OK
+	##associative nem egyezik, NEM OK
 	#def test_simplify_2(self):
 	#	expr_simplify_to_the_same_old(self, "x^a*x^b", "x^(a+b)")
 	
-	# measure miatt nem alkalmazza, OK
+	##measure miatt nem alkalmazza, OK
 	#def test_simplify_3(self):
 	#	expr_simplify_to_the_same_old(self, "(x^a)^b", "x^(a*b)")
 	
