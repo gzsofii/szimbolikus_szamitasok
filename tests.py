@@ -232,6 +232,7 @@ class RationalTest(unittest.TestCase):
 class SimplifyExprTest(unittest.TestCase):
     def test_simplify_int_power(self):
         self.assertEqual(simplify_int_power(2, 2), 4)
+        self.assertEqual(simplify_int_power(4, -1), Fraction(1, 4))
         self.assertEqual(simplify_int_power(Fraction(1,2), 2), Fraction(1,4))
         self.assertEqual(simplify_int_power(Var("x"), 0), 1)
         self.assertEqual(simplify_int_power(Var("x"), 1), Var("x"))
@@ -254,6 +255,79 @@ class SimplifyExprTest(unittest.TestCase):
 
     def test_simplify_quot(self):
         self.assertEqual(simplify_quot(Function('/', Var("a"), Var("b"))), Function('*', Var("a"), Function('^', Var("b"), -1)))
+    
+    def test_simplify_product_rec_len2(self):
+        self.assertEqual(simplify_product_rec([1, 1], True, 1), [])
+        self.assertEqual(simplify_product_rec([1, 2], True, 1), [2])
+        self.assertEqual(simplify_product_rec([1, Var("x")], True, 1), [Var("x")])
+        self.assertEqual(simplify_product_rec([Var("x"), 1], True, 1), [Var("x")])
+        self.assertEqual(simplify_product_rec([Var("x"), Var("x")], True, 1), [Function('^', Var("x"), 2)])
+        self.assertEqual(simplify_product_rec([Var("x"), Function('^', Var("x"), 2)], True, 1), [Function('^', Var("x"), 3)])
+        self.assertEqual(simplify_product_rec([Function('^', Var("x"), 2), Var("x")], True, 1), [Function('^', Var("x"), 3)])
+        self.assertEqual(simplify_product_rec([Function('^', Var("x"), 1), Function('^', Var("x"), -1)], True, 1), [])
+        self.assertEqual(simplify_product_rec([Var("y"), Var("x")], True, 1), [Var("x"), Var("y")])
+        self.assertEqual(simplify_product_rec([Var("y"), Var("x")], False, 1), [Var("y"), Var("x")])
+        self.assertEqual(simplify_product_rec([Var("x"), Var("y")], True, 1), [Var("x"), Var("y")])
+        self.assertEqual(simplify_product_rec([Function('*', Var("x"), Var("y")), Var("z")], True, 1), [Var("x"), Var("y"), Var("z")])
+        self.assertEqual(simplify_product_rec([Var("u"), Function('*', Var("x"), Var("y"))], True, 1), [Var("u"), Var("x"), Var("y")])
+        self.assertEqual(simplify_product_rec([Function('*', Var("u"), Var("v")), Function('*', Var("x"), Var("y"))], True, 1), [Var("u"), Var("v"), Var("x"), Var("y")])
+
+    def test_merge_products(self):
+        self.assertEqual(merge_products([1], [], True, 0), [1])
+        self.assertEqual(merge_products([], [2], True, 0), [2])
+        self.assertEqual(merge_products([1], [1], True, 0), [])
+        self.assertEqual(merge_products([1], [2], True, 0), [2])
+        self.assertEqual(merge_products([Var("x"), Var("y")], [Var("u"), Var("v")], True, 0), [Var("u"), Var("v"), Var("x"), Var("y")])
+        self.assertEqual(merge_products([Var("x"), Var("y")], [Var("u"), Var("x")], True, 0), [Var("u"), Function('^', Var("x"), 2), Var("y")])
+
+    def test_simplify_product(self):
+        self.assertEqual(simplify_product(Function('*', None)), None)
+        self.assertEqual(simplify_product(Function('*', 0, Var("x"))), 0)
+        self.assertEqual(simplify_product(Function('*', Var("x"))), Var("x"))
+        self.assertEqual(simplify_product(Function('*', 1, 1)), 1)
+        self.assertEqual(simplify_product(Function('*', 1, 2)), 2)
+        self.assertEqual(simplify_product(Function('*', Var("x"), Var("y"), Var("z"))), Function('*', Var("x"), Var("y"), Var("z")))
+        self.assertEqual(simplify_product(Function('*', 4, Fraction(1,4))), 1)
+ 
+    def test_simplify_sum_rec_len2(self):
+        self.assertEqual(simplify_sum_rec([0, 0], True, 1), [])
+        self.assertEqual(simplify_sum_rec([0, 2], True, 1), [2])
+        self.assertEqual(simplify_sum_rec([0, Var("x")], True, 1), [Var("x")])
+        self.assertEqual(simplify_sum_rec([Var("x"), 0], True, 1), [Var("x")])
+        self.assertEqual(simplify_sum_rec([Var("x"), Var("x")], True, 1), [Function('*', 2, Var("x"))])
+        self.assertEqual(simplify_sum_rec([Var("x"), Function('*', 2, Var("x"))], True, 1), [Function('*', 3, Var("x"))])
+        self.assertEqual(simplify_sum_rec([Function('*', 2, Var("x")), Var("x")], True, 1), [Function('*', 3, Var("x"))])
+        self.assertEqual(simplify_sum_rec([Function('*', 1, Var("x")), Function('*', -1, Var("x"))], True, 1), [])
+        self.assertEqual(simplify_sum_rec([Var("y"), Var("x")], True, 1), [Var("x"), Var("y")])
+        self.assertEqual(simplify_sum_rec([Var("y"), Var("x")], False, 1), [Var("y"), Var("x")])
+        self.assertEqual(simplify_sum_rec([Var("x"), Var("y")], True, 1), [Var("x"), Var("y")])
+        self.assertEqual(simplify_sum_rec([Function('+', Var("x"), Var("y")), Var("z")], True, 1), [Var("x"), Var("y"), Var("z")])
+        self.assertEqual(simplify_sum_rec([Var("u"), Function('+', Var("x"), Var("y"))], True, 1), [Var("u"), Var("x"), Var("y")])
+        self.assertEqual(simplify_sum_rec([Function('+', Var("u"), Var("v")), Function('+', Var("x"), Var("y"))], True, 1), [Var("u"), Var("v"), Var("x"), Var("y")])
+
+    def test_merge_sums(self):
+        self.assertEqual(merge_sums([1], [], True, 0), [1])
+        self.assertEqual(merge_sums([], [2], True, 0), [2])
+        self.assertEqual(merge_sums([0], [0], True, 0), [])
+        self.assertEqual(merge_sums([0], [2], True, 0), [2])
+        self.assertEqual(merge_sums([Var("x"), Var("y")], [Var("u"), Var("v")], True, 0), [Var("u"), Var("v"), Var("x"), Var("y")])
+        self.assertEqual(merge_sums([Var("x"), Var("y")], [Var("u"), Var("x")], True, 0), [Var("u"), Function('*', 2, Var("x")), Var("y")])
+
+    def test_simplify_sum(self):
+        self.assertEqual(simplify_sum(Function('+', None)), None)
+        self.assertEqual(simplify_sum(Function('+', Var("x"))), Var("x"))
+        self.assertEqual(simplify_sum(Function('+', 0, 0)), 0)
+        self.assertEqual(simplify_sum(Function('+', 0, 2)), 2)
+        self.assertEqual(simplify_sum(Function('+', Var("x"), Var("y"), Var("z"))), Function('+', Var("x"), Var("y"), Var("z")))
+
+    def test_simplify_expr(self):
+        self.assertEqual(simplify_expr(None), None)       
+        self.assertEqual(simplify_expr(1), 1)       
+        self.assertEqual(simplify_expr(Fraction(2, 4)), Fraction(1,2))       
+        self.assertEqual(simplify_expr(Function('*', Function('+', 2, 2), Function('+', 2, 2))), 16)       
+        self.assertEqual(simplify_expr(Function('-', Function('+', 2, 2), Function('+', 2, 2))), 0)       
+        self.assertEqual(simplify_expr(Function('/', Function('+', 2, 2), Function('+', 2, 2))), 1)       
+        self.assertEqual(simplify_expr(Function('^', Function('+', 2, 2), Function('+', 2, 2))), 256)       
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

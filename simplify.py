@@ -255,25 +255,8 @@ def apply_rule_in_tree(rule, tree):
 # Egyszerűsítés
 ##############################################
 
-#Csak konstansokat tartalmazó kifejezések kiértékelése
-#Ez nem az egyszerűsítő algoritmus dolga, de mivel itt most nincs mögötte egy komputeralgebra rendszer ami
-#elvégezné a kiértékelést, a legegyszerűbb eseteket célszerű kezelni
 def eval_tree(tree):
-    if type(tree) is Function:
-        if tree.name in "+-*/%" and len(tree.args) == 2 and isinstance(tree.args[0], numbers.Number) and isinstance(tree.args[1], numbers.Number):
-            if tree.name == "+":
-                return tree.args[0]+tree.args[1]
-            elif tree.name == "-":
-                return tree.args[0]-tree.args[1]
-            elif tree.name == "*":
-                return tree.args[0]*tree.args[1]
-            elif tree.name == "/" and tree.args[1] != 0:
-                return tree.args[0]/tree.args[1]
-            elif tree.name == "%" and tree.args[1] != 0:
-                return tree.args[0]%tree.args[1]
-        for k in range(len(tree.args)):
-            tree.args[k] = eval_tree(tree.args[k])
-    return tree
+    return simplify_expr(tree)
 
 #Az egyszerűsítés egy lépése
 #Alkalmazza a megadott transzformációkat és átírási szabályokat.
@@ -355,7 +338,7 @@ def simplify_expr(expr):
         return simplify_rational_number(expr)
 
     if type(expr) is Function:
-        expr.args = map(simplify_expr, expr.args)
+        expr.args = list(map(simplify_expr, expr.args))
         
         if expr.name == '^':
             return simplify_power(expr)
@@ -364,7 +347,7 @@ def simplify_expr(expr):
         if expr.name == '-':
             return simplify_diff(expr)
         if expr.name == '*':
-            return simplify_prod(expr)
+            return simplify_product(expr)
         if expr.name == '/':
             return simplify_quot(expr)
 
@@ -452,7 +435,7 @@ def simplify_product_rec(L, c, a):
         # SPRDREC-1
         if not (type(L[0]) is Function and L[0].name == '*') and not (type(L[1]) is Function and L[1].name == '*'):
             # SPRDREC-1-1
-            if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
+            if (isinstance(L[0], numbers.Number) or type(L[0]) is Fraction) and (isinstance(L[1], numbers.Number) or type(L[1]) is Fraction):
                 P = simplify_rne(Function('*', *L, commutative = c, associative = a))
                 if P == 1:
                     return []
@@ -469,8 +452,8 @@ def simplify_product_rec(L, c, a):
 
             # SPRDREC-1-3
             if base(L[0]) == base(L[1]):
-                S = simplify_sum(Function('+', exponent(L[0]), exponent(L[1], commutative = c, associative = 1 if a != -1 else -1)))
-                P = simplyfy_power(Function('^', base(L[0]), S))
+                S = simplify_sum(Function('+', exponent(L[0]), exponent(L[1]), commutative = c, associative = 1 if a != -1 else -1))
+                P = simplify_power(Function('^', base(L[0]), S))
                 if isinstance(P, numbers.Number) and P == 1:
                     return []
                 else:
@@ -507,7 +490,7 @@ def simplify_product_rec(L, c, a):
         else:
             return merge_products([L[0]], w, c, a)
 
-def merge_product(p, q, c, a):
+def merge_products(p, q, c, a):
     # MPRD-1
     if q == []:
         return p
@@ -517,23 +500,23 @@ def merge_product(p, q, c, a):
         return q
 
     # MPRD-3
-    h = simplify_product_rec([p[0]], [p[1]], c, a)
-    
+    h = simplify_product_rec([p[0], q[0]], c, a)
+ 
     # MPRD-3-1
     if h == []:
         return merge_products(p[1:], q[1:], c, a)
     # MPRD-3-2
     elif len(h) == 1:
-        return merge_products(p[1:], q[1:], c, a).insert(0, h[0])
+        return [h[0]] + merge_products(p[1:], q[1:], c, a)
     
     elif len(h) == 2:
         # MPRD-3-3
         if h[0] == p[0]:
-            return merge_products(p[1:], q, c, a).insert(0, h[0])
+            return [h[0]] + merge_products(p[1:], q, c, a)
         
         # MPRD-3-3
         elif h[0] == q[0]:
-            return merge_products(p, q[1:], c, a).insert(0, h[0])
+            return [h[0]] + merge_products(p, q[1:], c, a)
 
 def simplify_sum(expr):
     # SSRD-1
@@ -559,8 +542,8 @@ def simplify_sum_rec(L, c, a):
         # SSRDREC-1
         if not (type(L[0]) is Function and L[0].name == '+') and not (type(L[1]) is Function and L[1].name == '+'):
             # SSRDREC-1-1
-            if isinstance(L[0], numbers.Number) and isinstance(L[1], numbers.Number):
-                P = simlify_rne(Function('+', *L, commutative = c, associative = a))
+            if (isinstance(L[0], numbers.Number) or type(L[0]) is Fraction) and (isinstance(L[1], numbers.Number) or type(L[1]) is Fraction):
+                P = simplify_rne(Function('+', *L, commutative = c, associative = a))
                 if P == 0:
                     return []
                 else:
@@ -577,7 +560,7 @@ def simplify_sum_rec(L, c, a):
             # SSRDREC-1-3
             if term(L[0]) == term(L[1]):
                 S = simplify_sum(Function('+', const(L[0]), const(L[1])))
-                P = simplyfy_product(Function('*', term(L[0]), S))
+                P = simplify_product(Function('*', S, term(L[0])))
                 if isinstance(P, numbers.Number) and P == 0:
                     return []
                 else:
@@ -624,7 +607,7 @@ def merge_sums(p, q, c, a):
         return q
 
     # MSRD-3
-    h = simplify_sum_rec([p[0]], [p[1]], c, a)
+    h = simplify_sum_rec([p[0], q[0]], c, a)
     
     # MSRD-3-1
     if h == []:
@@ -632,16 +615,16 @@ def merge_sums(p, q, c, a):
 
     # MSRD-3-2
     elif len(h) == 1:
-        return merge_sums(p[1:], q[1:], c, a).insert(0, h[0])
+        return [h[0]] + merge_sums(p[1:], q[1:], c, a)
     
     elif len(h) == 2:
         # MSRD-3-3
         if h[0] == p[0]:
-            return merge_sums(p[1:], q, c, a).insert(0, h[0])
+            return [h[0]] + merge_sums(p[1:], q, c, a)
         
         # MSRD-3-3
         elif h[0] == q[0]:
-            return merge_sums(p, q[1:], c, a).insert(0, h[0])
+            return [h[0]] + merge_sums(p, q[1:], c, a)
 
 def simplify_rne(u):
     v = simplify_rne_rec(u)
